@@ -1,27 +1,27 @@
-from app_abc import Application, autorun, HaltLoop, ExitApplication
+from app_abc import Application, autorun
 import os
+import sys
 
-#@autorun(name="MyApp1", traceback=True)
+@autorun(name="MyApp1", traceback=False)
 class MyApp1(Application):
 
-    def on_start(self):
-        print("Level", self.run_params.level)
-        self.greetings = "Hello World from MyApp1"
+    def onstart(self):
+        self.greetings = "Leaving app..."
 
-    def on_finish(self):
+    def onfinish(self):
         print(self.greetings)
 
-    def loop(self):
-        print("Hello 1")
-        q = input("Exit? [y/n]: ").strip()
-        print()
-        if q.lower() in ["y", "yes"]:
-            raise ExitApplication
-        else:
-            print("Waiting 2 seconds")
-            raise HaltLoop(sleep=1)
+    def main(self):
+        print(">>>")
+
+        cmd = input("To exit enter 'exit': ").strip()
+        if cmd.lower() in ["exit"]:
+            return 0
+
+    def exit(self, retval):
+        sys.exit(retval)
 
 
 # this part of code cannot be reached when decorator autorun is used
-my_app1 = MyApp1("MyApp1", traceback=True)
-my_app1.run(level=1)
+# my_app1 = MyApp1("MyApp1")
+# my_app1.run()

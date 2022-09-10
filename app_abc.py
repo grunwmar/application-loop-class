@@ -8,23 +8,6 @@ from collections import namedtuple
 from typing import NamedTuple
 
 
-# custom exceptions
-class ExitApplication(Exception):
-    """When raised exits Application."""
-
-    def __init__(self, return_code:int=0):
-        self.return_code = return_code
-
-
-class HaltLoop(Exception):
-    """When raised waits defined sleep time then skips to new loop iteration.""" \
-    """When raised waits to press enter then skips to new loop iteration."""
-
-    def __init__(self, sleep:float=None, text:str=None):
-        self.sleep = sleep
-        self.text = text
-
-
 # class definition
 class Application(ABC):
 
@@ -32,11 +15,13 @@ class Application(ABC):
         self._name = name
         self._do_print_traceback = traceback
 
+
     @property
     def name(self) -> str:
         """Returns name of application."""
 
         return self._name
+
 
     @property
     def run_params(self) -> NamedTuple:
@@ -44,46 +29,40 @@ class Application(ABC):
 
         return self._run_params
 
+
     def run(self, **kwargs:dict):
         """Runs application loop while handling exceptions occured in the loop."""
 
         parameters = namedtuple("Parameters", list(kwargs.keys()))
         self._run_params = parameters(**kwargs)
         try:
-            self.on_start()
+            self.onstart()
             while True:
-                try:
-                    self.loop()
-                except HaltLoop as halt_app:
-                    if halt_app.sleep is None:
-                        t = halt_app.text
-                        t = "" if t is None else t
-                        input(t)
+                retval = self.main()
+                if retval is not None:
+                    if isinstance(retval, int):
+                        self.onfinish()
+                        self.exit(retval)
+                        break
                     else:
-                        time.sleep(halt_app.sleep)
-        except ExitApplication as exit_app:
-            self.on_finish()
-
-            # Message printed when application exits
-            print("\n" + 40 * "=")
-            print(f" Application: {self._name}")
-            print(" Exit with code", exit_app.return_code)
-            print()
-            sys.exit(exit_app.return_code)
+                        raise ValueError("return value must be an integer")
         except KeyboardInterrupt as exc:
             self._print_traceback("Keyboard interrupt")
-            self.on_kb_interrupt()
-            sys.exit(1)
+            self.onkeyboardinterrupt()
+            print()
         except Exception as exc:
             self._print_traceback()
-            self.on_error(exc)
-            sys.exit(1)
+            self.onerror(exc)
+        finally:
+            self.exit(1)
+
 
     @property
     def timestamp(self) -> str:
         """Returns string time stamp"""
 
         return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
 
     def _print_traceback(self, custom_message:str=None):
         """Writes traceback content to log file with option to print that to console."""
@@ -94,16 +73,20 @@ class Application(ABC):
         if self._do_print_traceback:
             print(f"\n\033[0;31m{traceback_text}\033[0m")
 
+
     @abstractmethod
-    def loop(self): ...
+    def main(self): ...
 
-    def on_start(self): ...
+    @abstractmethod
+    def exit(self): ...
 
-    def on_finish(self): ...
+    def onstart(self): ...
 
-    def on_error(self, exc): ...
+    def onfinish(self): ...
 
-    def on_kb_interrupt(self): ...
+    def onerror(self, exc): ...
+
+    def onkeyboardinterrupt(self): ...
 
 
 # decorator
