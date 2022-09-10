@@ -11,6 +11,7 @@ from typing import NamedTuple
 # class definition
 class Application(ABC):
 
+
     def __init__(self, name:str, traceback:bool=False):
         self._name = name
         self._do_print_traceback = traceback
@@ -46,14 +47,17 @@ class Application(ABC):
                         break
                     else:
                         raise ValueError("return value must be an integer")
+
         except KeyboardInterrupt as exc:
-            self._print_traceback("Keyboard interrupt")
             self.onkeyboardinterrupt()
-            print()
+            self._print_traceback("Keyboard interrupt", color=35)
+
         except Exception as exc:
-            self._print_traceback()
             self.onerror(exc)
+            self._print_traceback()
+
         finally:
+            print()
             self.exit(1)
 
 
@@ -64,14 +68,14 @@ class Application(ABC):
         return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
-    def _print_traceback(self, custom_message:str=None):
+    def _print_traceback(self, custom_message:str=None, color:int=31):
         """Writes traceback content to log file with option to print that to console."""
 
         traceback_text = traceback.format_exc() if custom_message is None else custom_message
         with open(f"{self.name}_error.log", "a") as logfile:
             logfile.write(f"{self.timestamp} *** {self.name} *** \n" + traceback_text + "\n\n")
         if self._do_print_traceback:
-            print(f"\n\033[0;31m{traceback_text}\033[0m")
+            print(f"\n\033[0;{color}m{traceback_text}\033[0m")
 
 
     @abstractmethod
